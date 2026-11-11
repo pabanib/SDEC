@@ -15,7 +15,7 @@ env/
 .Ruserdata
 
 # Resultados y figuras generados por los scripts
-/resultados/
+#/resultados/
 /figuras/
 
 # Entornos de desarrollo
