@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Control without neural network (Table 4, variant (x)): the data are smoothed m times with the row-standardized neighbor
+Control without neural network (Table 5, variant (x)): the data are smoothed m times with the row-standardized neighbor
 matrix (each unit is replaced by the average of its neighbors) and constrained Ward is applied, with and without a
 previous PCA(6). AMI with the target partition in the two scenarios.
 Usage:  python control_suavizado.py        Writes resultados/control_suavizado.json

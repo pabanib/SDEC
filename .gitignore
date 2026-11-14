@@ -17,6 +17,7 @@ env/
 # Resultados y figuras generados por los scripts
 #/resultados/
 /figuras/
+/notebooks/
 
 # Entornos de desarrollo
 .vscode/

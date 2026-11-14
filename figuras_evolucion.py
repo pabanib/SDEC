@@ -2,7 +2,8 @@
 """
 Evolution by region: Figure 6 (COVID-19), Figures 8 and 9 (wages and jobs, country and Cuyo) and the table of Cuyo.
 
-A single diverging scale centered at zero and a common color bar are used in the three panels of each figure. The value
+A single diverging scale centered at zero and a common color bar are used in the three panels of each figure; Figure 9
+uses its own narrower scale (+-VMAX_CUYO), since the means of Cuyo lie between -0.4 and 0.5. The value
 mapped is the regional mean of the standardized variable (z-score across departments for each variable and period, as it
 enters the algorithm). The partitions are those mapped by figuras_mapas.py (figuras/particion_covid.csv and
 figuras/particion_salarios.csv), so run that script first.
@@ -28,6 +29,7 @@ MESES_COVID = [4, 10, 16]              # month index (0 = March 2020): July 2020
 ANIOS_SALARIOS = [2015, 2019, 2023]
 PROV_CUYO = ['Mendoza', 'San Juan', 'San Luis']
 CMAP = 'RdBu_r'
+VMAX_CUYO = 1.0                        # color scale of Figure 9
 MESES = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December',
          'January', 'February', 'March', 'April', 'May', 'June', 'July']
 ANIO_MES = [2020] * 10 + [2021] * 7
@@ -98,11 +100,11 @@ def salarios():
     vmax, med = dibujar_evolucion(d['geo'], g, vals, tit, os.path.join(constantes.DIR_FIGURAS, 'fig8.png'), etiqueta,
                                   km=500)
     med.round(3).to_csv(os.path.join(constantes.DIR_FIGURAS, 'fig8_medias_regionales.csv'))
-    # Cuyo: same regions, means computed only with the departments of Cuyo, same scale as Figure 8
+    # Cuyo: same regions, means computed only with the departments of Cuyo, own scale (colors not comparable with Figure 8)
     filtro = d['dep']['provincia'].isin(PROV_CUYO).values
     _, med9 = dibujar_evolucion(d['geo'][filtro], g[filtro], vals[filtro], tit,
                                 os.path.join(constantes.DIR_FIGURAS, 'fig9.png'),
-                                etiqueta + '; Cuyo departments only', km=200, vmax=vmax, figsize=(15, 7.5), fuente_num=9)
+                                etiqueta + '; Cuyo departments only', km=200, vmax=VMAX_CUYO, figsize=(15, 7.5), fuente_num=9)
     med9.round(3).to_csv(os.path.join(constantes.DIR_FIGURAS, 'fig9_medias_regionales_cuyo.csv'))
     # table of Cuyo: annual means 2014-2023 by region
     t = anual.T[filtro].groupby(g[filtro]).mean()

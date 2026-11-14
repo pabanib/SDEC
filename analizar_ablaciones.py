@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Summary of the ablations (Table 4): AMI and ARI with the target partition (mean and standard deviation over seeds) of
+Summary of the ablations (Table 5): AMI and ARI with the target partition (mean and standard deviation over seeds) of
 each variant and scenario, and the temporal permutation test: ARI between the permuted SDEC and the complete SDEC with the
 same seed, against the ARI between complete runs with different seeds.
 Reads resultados/ablaciones_escenario<k>.jsonl, resultados/ablacion_lineal_escenario<k>.jsonl and

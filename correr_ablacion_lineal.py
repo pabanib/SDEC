@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Ablation of the nonlinearity of the encoder (Table 4, variants (xi) and (xii)).
+Ablation of the nonlinearity of the encoder (Table 5, variants (xi) and (xii)).
 
 Usage:  python correr_ablacion_lineal.py <scenario 1|2> [seed ...]      (default seeds: 1 to 5)
 

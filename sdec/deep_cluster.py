@@ -18,6 +18,7 @@ from keras.layers import Layer, InputSpec, Dense, Input, concatenate
 from tensorflow.keras import regularizers
 from keras.models import Model
 from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.metrics import adjusted_rand_score
 
 DIM_LATENTE = 6      # dimension of the latent space (h)
 MAX_ITER = 1000      # maximum number of iterations of the refinement
@@ -81,6 +82,24 @@ def target_xie(W, q):
     return (weight.T / weight.sum(1)).T
 
 
+def target_espacial_propio(W, q):
+    """Spatially smoothed target that also includes the unit's own term of the DEC target: the own q_ij^2 / f_j enters
+    as one more neighbor (W + I). Used only in the ablation (variant 'neighbors + own term')."""
+    weight = (W.todense() + np.eye(W.shape[0])) @ (q ** 2 / q.sum(0))
+    return np.asarray((weight.T / weight.sum(1).reshape(len(q), )).T)
+
+
+TARGETS = {'espacial': target_espacial, 'xie': target_xie, 'espacial_propio': target_espacial_propio}
+
+
+def kl_completa(p, q):
+    """KL(P||Q) summed over regions and averaged over units, evaluated on all units (the loss of the refinement)."""
+    p = np.asarray(p, float)
+    q = np.asarray(q, float)
+    m = p > 0
+    return float((p[m] * np.log(p[m] / q[m])).sum() / p.shape[0])
+
+
 class sdec():
     """n_clust: number of regions K; inp_shape: [T, T], periods of each variable."""
 
@@ -122,18 +141,26 @@ class sdec():
     def train_autoencoder(self, inp, out):
         self.autoencoder.fit(inp, out, epochs=100, validation_split=0.2, verbose=False)
 
-    def ajustar_modelo(self, X, W, objetivo='espacial', final='ward', semilla=None, pesos_iniciales=None):
+    def ajustar_modelo(self, X, W, objetivo='espacial', final='ward', semilla=None, pesos_iniciales=None,
+                       max_iter=MAX_ITER, guardar=()):
         """Refinement of the embedding and final partition.
 
         X: list [X1, X2] with the inputs of the two branches. W: sparse neighbor matrix (k nearest neighbors).
-        objetivo: 'espacial' (target smoothed with W, SDEC) or 'xie' (target of Xie et al., 2016).
+        objetivo: 'espacial' (target smoothed with W, SDEC), 'xie' (target of Xie et al., 2016) or 'espacial_propio'
+            (neighbors and the unit's own term, W + I; ablation only).
+        max_iter: maximum number of iterations (MAX_ITER = 1,000 by default; larger values only in the convergence
+            check).
+        guardar: iterations at which the partition is stored in self.particiones (convergence check only).
         final: 'ward' (Ward's method constrained by W, applied to Q) or 'argmax' (argmax of Q).
         semilla: seed of the initial k-means (call keras.utils.set_random_seed(semilla) before gen_modelo()).
         pesos_iniciales: weights of the model from which the refinement starts (pre-trained autoencoder);
             if None, the current weights are used.
 
         Sets self.y_pred (final partition), self.historial (iteration, proportion of units that change
-        group), self.ultima_actualizacion (iteration of the last update) and self.n_iter (last iteration run).
+        group), self.traza (at each update: iteration, KL between the previous target and the current Q, KL between
+        the new target and Q, proportion of units whose label changes, and adjusted Rand index with the previous
+        partition, which does not depend on the numbering of the groups), self.ultima_actualizacion (iteration of the last
+        update) and self.n_iter (last iteration run).
         """
         if pesos_iniciales is not None:
             self.model.set_weights(pesos_iniciales)
@@ -141,17 +168,26 @@ class sdec():
         km.fit(self.encoder.predict(X, verbose=0))
         self.model.get_layer(name="clustering").set_weights([km.cluster_centers_])
         y_pred_last = np.copy(km.labels_)
-        tgt = target_espacial if objetivo == 'espacial' else target_xie
+        tgt = TARGETS[objetivo]
         agrupador = AgglomerativeClustering(self.n_clusters, connectivity=W, linkage='ward')
         self.historial = []
+        self.traza = []          # (iteration, KL(P_prev||Q), KL(P||Q), change of labels, ARI with the previous partition)
+        p = None
+        self.particiones = {}
         ite = 0
-        for ite in range(int(MAX_ITER)):
+        for ite in range(int(max_iter)):
             if ite % INTERVALO == 0:
                 q = self.model.predict(X, verbose=0)
+                kl_previa = kl_completa(p, q) if p is not None else None
                 p = tgt(W, q)
                 y_pred = agrupador.fit_predict(q) if final == 'ward' else q.argmax(1)
                 delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                y_pred_previo = y_pred_last
                 y_pred_last = np.copy(y_pred)
+                self.traza.append((ite, kl_previa, kl_completa(p, q), float(delta_label),
+                                   float(adjusted_rand_score(y_pred_previo, y_pred)) if ite > 0 else None))
+                if ite in guardar:
+                    self.particiones[ite] = np.copy(y_pred)
                 if ite > 0:
                     self.historial.append((ite, float(delta_label)))
                     if delta_label < TOL:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Ablations of SDEC and temporal permutation (Table 4, variants (i) to (ix)).
+Ablations of SDEC and temporal permutation (Table 5, variants (i) to (ix)).
 
 Usage:  python correr_ablaciones.py <scenario 1|2> [seed ...]      (default seeds: 1 to 5)
 

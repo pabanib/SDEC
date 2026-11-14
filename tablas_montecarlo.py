@@ -41,7 +41,7 @@ def intervalo(d, rng):
 def main():
     obj = datos.objetivo_simulacion(datos.departamentos())
     filas = []
-    for ruta in sorted(glob.glob(os.path.join(constantes.DIR_RESULTADOS, 'montecarlo_a*.jsonl'))):
+    for ruta in sorted(glob.glob(os.path.join(constantes.DIR_RESULTADOS, 'montecarlo_a[0-9]*.jsonl'))):
         filas += leer_jsonl(ruta)
     if not filas:
         raise SystemExit('No results found: run correr_montecarlo.py first.')
